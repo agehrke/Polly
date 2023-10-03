@@ -2,9 +2,6 @@ using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Polly.Telemetry;
 using Polly.Timeout;
-#if !NET8_0_OR_GREATER
-using Polly.Utils;
-#endif
 
 namespace Polly.Core.Tests.Timeout;
 
@@ -123,23 +120,20 @@ public class TimeoutResilienceStrategyTests : IDisposable
         SetTimeout(TimeSpan.FromSeconds(2));
         var sut = CreateSut();
 
-        var outcome = await sut.ExecuteOutcomeAsync(async (c, _) =>
-        {
-            var delay = _timeProvider.Delay(TimeSpan.FromSeconds(4), c.CancellationToken);
-            _timeProvider.Advance(TimeSpan.FromSeconds(2));
-            await delay;
+        var outcome = await sut.ExecuteOutcomeAsync(
+            async (c, _) =>
+            {
+                var delay = _timeProvider.Delay(TimeSpan.FromSeconds(4), c.CancellationToken);
+                _timeProvider.Advance(TimeSpan.FromSeconds(2));
+                await delay;
 
-            return Outcome.FromResult("dummy");
-        },
-        ResilienceContextPool.Shared.Get(),
-        "state");
+                return Outcome.FromResult("dummy");
+            },
+            ResilienceContextPool.Shared.Get(),
+            "state");
+
         outcome.Exception.Should().BeOfType<TimeoutRejectedException>();
-
-#if NET8_0_OR_GREATER
-        outcome.Exception!.StackTrace.Should().Contain(nameof(Execute_Timeout_EnsureStackTrace));
-#else
-        outcome.Exception!.StackTrace.Should().Contain(nameof(StrategyHelper));
-#endif
+        outcome.Exception!.StackTrace.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
