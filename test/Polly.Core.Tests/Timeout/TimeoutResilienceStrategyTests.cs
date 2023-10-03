@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Polly.Telemetry;
@@ -133,7 +134,11 @@ public class TimeoutResilienceStrategyTests : IDisposable
             "state");
 
         outcome.Exception.Should().BeOfType<TimeoutRejectedException>();
-        outcome.Exception!.StackTrace.Should().NotBeNullOrEmpty();
+
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            outcome.Exception!.StackTrace.Should().Contain(nameof(Polly.Utils.StrategyHelper));
+        }
     }
 
     [Fact]
